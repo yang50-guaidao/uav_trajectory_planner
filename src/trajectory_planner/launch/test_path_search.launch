@@ -1,0 +1,36 @@
+<launch>
+    <!-- Map Generator (without its own rviz) -->
+    <arg name="map_frame_id" default="world"/>
+    <arg name="map_size_x" default="30"/>
+    <arg name="map_size_y" default="30"/>
+    <arg name="map_size_z" default="3"/>
+
+    <node pkg="param_env" name="structure_map" type="structure_map" output="screen">
+        <param name="map/x_size" value="$(arg map_size_x)"/>
+        <param name="map/y_size" value="$(arg map_size_y)"/>
+        <param name="map/z_size" value="$(arg map_size_z)"/>
+        <param name="map/x_origin" value="-15.0" type="double"/>
+        <param name="map/y_origin" value="-15.0" type="double"/>
+        <param name="map/z_origin" value="0.0" type="double"/>
+        <param name="map/resolution" value="0.1"/>
+        <param name="map/frame_id" value="$(arg map_frame_id)"/>
+        <param name="map/cylinder_ratio" value="0.10" type="double"/>
+        <param name="map/circle_ratio" value="0.02" type="double"/>
+        <param name="map/gate_ratio" value="0.00" type="double"/>
+        <param name="map/ellip_ratio" value="0.02" type="double"/>
+        <param name="map/poly_ratio" value="0.00" type="double"/>
+        <param name="params/w1" value="0.1"/>
+        <param name="params/w2" value="0.8"/>
+        <param name="params/w3" value="1.2"/>
+        <param name="params/w4" value="3.0"/>
+    </node>
+
+    <!-- Trajectory Planner Node -->
+    <node pkg="trajectory_planner" type="planner_node" name="trajectory_planner" output="screen">
+        <rosparam file="$(find trajectory_planner)/config/planner_params.yaml"/>
+        <remap from="~planning/goal" to="/move_base_simple/goal"/>
+    </node>
+
+    <!-- RViz -->
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find trajectory_planner)/rviz/path_search.rviz"/>
+</launch>

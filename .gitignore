@@ -1,0 +1,32 @@
+# Build directories
+build/
+build_isolated/
+devel/
+devel_isolated/
+install/
+install_isolated/
+
+# Third-party dependencies (clone separately)
+src/catkin_simple/
+src/decomp_util/
+src/decomp_ros_utils/
+src/map_generator/
+osqp-eigen/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ROS generated
+*.pyc
+__pycache__/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
