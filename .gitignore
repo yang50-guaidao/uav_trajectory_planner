@@ -11,6 +11,7 @@ src/catkin_simple/
 src/decomp_util/
 src/decomp_ros_utils/
 src/map_generator/
+src/kr_mav_control/
 osqp-eigen/
 
 # IDE

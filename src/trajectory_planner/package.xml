@@ -9,6 +9,9 @@
 
   <buildtool_depend>catkin</buildtool_depend>
   
+  <build_depend>message_generation</build_depend>
+  <exec_depend>message_runtime</exec_depend>
+  
   <depend>roscpp</depend>
   <depend>std_msgs</depend>
   <depend>geometry_msgs</depend>
@@ -20,5 +23,7 @@
   <depend>decomp_ros_msgs</depend>
   <depend>decomp_ros_utils</depend>
   <depend>decomp_util</depend>
+  <depend>kr_mav_msgs</depend>
+  <depend>topic_tools</depend>
 
 </package>

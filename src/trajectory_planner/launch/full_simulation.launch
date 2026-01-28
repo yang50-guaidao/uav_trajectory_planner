@@ -1,0 +1,135 @@
+<launch>
+    <!-- ==================== Arguments ==================== -->
+    <arg name="mav_name" default="quadrotor"/>
+    <arg name="mav_type" default="hummingbird"/>
+    <arg name="mass" default="0.5"/>
+    <arg name="world_frame_id" default="world"/>
+    
+    <!-- Map parameters -->
+    <arg name="map_size_x" default="30"/>
+    <arg name="map_size_y" default="30"/>
+    <arg name="map_size_z" default="3"/>
+    
+    <!-- UAV initial position (should match planner start_pos) -->
+    <arg name="init_x" default="-12.0"/>
+    <arg name="init_y" default="-12.0"/>
+    <arg name="init_z" default="0.0"/>
+
+    <!-- ==================== Map Generator ==================== -->
+    <node pkg="param_env" name="structure_map" type="structure_map" output="screen">
+        <param name="map/x_size" value="$(arg map_size_x)"/>
+        <param name="map/y_size" value="$(arg map_size_y)"/>
+        <param name="map/z_size" value="$(arg map_size_z)"/>
+        <param name="map/x_origin" value="-15.0"/>
+        <param name="map/y_origin" value="-15.0"/>
+        <param name="map/z_origin" value="0.0"/>
+        <param name="map/resolution" value="0.1"/>
+        <param name="map/frame_id" value="$(arg world_frame_id)"/>
+        <param name="map/cylinder_ratio" value="0.10"/>
+        <param name="map/circle_ratio" value="0.02"/>
+        <param name="map/gate_ratio" value="0.00"/>
+        <param name="map/ellip_ratio" value="0.02"/>
+        <param name="map/poly_ratio" value="0.00"/>
+        <param name="params/w1" value="0.1"/>
+        <param name="params/w2" value="0.8"/>
+        <param name="params/w3" value="1.2"/>
+        <param name="params/w4" value="3.0"/>
+    </node>
+
+    <!-- ==================== Quadrotor Simulator ==================== -->
+    <group ns="$(arg mav_name)">
+        <param name="mass" value="$(arg mass)"/>
+        
+        <!-- SO3 Quadrotor Simulator -->
+        <node pkg="kr_quadrotor_simulator"
+            type="kr_quadrotor_simulator_so3"
+            name="quadrotor_simulator_so3"
+            output="screen">
+            <rosparam file="$(find kr_quadrotor_simulator)/config/$(arg mav_type)_params.yaml"/>
+            <param name="world_frame_id" value="$(arg world_frame_id)"/>
+            <param name="quadrotor_name" value="$(arg mav_name)"/>
+            <param name="rate/odom" value="100"/>
+            <param name="mass" value="$(arg mass)"/>
+            <param name="initial_position/x" value="$(arg init_x)"/>
+            <param name="initial_position/y" value="$(arg init_y)"/>
+            <param name="initial_position/z" value="$(arg init_z)"/>
+            <remap from="~odom" to="odom"/>
+            <remap from="~imu" to="imu"/>
+            <remap from="~cmd" to="so3_cmd"/>
+        </node>
+        
+        <!-- Mesh Visualization -->
+        <node pkg="kr_mesh_visualization"
+            type="kr_mesh_visualization"
+            name="mesh_visualization"
+            output="screen">
+            <param name="mesh_resource" value="package://kr_mesh_visualization/mesh/$(arg mav_type).mesh"/>
+            <param name="color/r" value="0.0"/>
+            <param name="color/g" value="0.0"/>
+            <param name="color/b" value="1.0"/>
+            <param name="color/a" value="0.7"/>
+            <remap from="~input" to="odom"/>
+        </node>
+        
+        <!-- Nodelet Manager -->
+        <node pkg="nodelet" type="nodelet" name="nodelet_manager_control" args="manager" output="screen"/>
+        
+        <!-- SO3 Controller -->
+        <node pkg="nodelet" type="nodelet" name="so3_control"
+            args="load kr_mav_controllers/SO3ControlNodelet nodelet_manager_control"
+            required="true" output="screen">
+            <rosparam file="$(find kr_mav_launch)/config/gains.yaml"/>
+            <param name="mass" value="$(arg mass)"/>
+            <remap from="~odom" to="odom"/>
+            <remap from="~position_cmd" to="position_cmd"/>
+            <remap from="~so3_cmd" to="so3_cmd"/>
+            <remap from="~motors" to="motors"/>
+        </node>
+        
+        <!-- Trackers Manager (required by mav_services) -->
+        <node pkg="nodelet" type="nodelet" name="trackers_manager"
+            args="load kr_trackers_manager/TrackersManager nodelet_manager_control"
+            output="screen">
+            <rosparam file="$(find kr_mav_launch)/config/trackers.yaml"/>
+            <rosparam file="$(find kr_mav_launch)/config/tracker_params.yaml"/>
+            <remap from="~odom" to="odom"/>
+            <remap from="~cmd" to="tracker_cmd"/>
+        </node>
+        
+        <!-- MAV Manager (for takeoff/land services) -->
+        <node pkg="kr_mav_manager" type="mav_services" name="mav_services" output="screen">
+            <rosparam file="$(find kr_mav_launch)/config/mav_manager_params.yaml"/>
+            <remap from="odom" to="odom"/>
+            <remap from="position_cmd" to="tracker_cmd"/>
+        </node>
+        
+        <!-- Command Mux: select between tracker_cmd and traj_server -->
+        <!-- First topic (tracker_cmd) is the default -->
+        <node pkg="topic_tools" type="mux" name="cmd_mux" 
+            args="position_cmd tracker_cmd /traj_server/position_cmd mux:=cmd_mux">
+        </node>
+    </group>
+
+    <!-- ==================== Trajectory Planner ==================== -->
+    <node pkg="trajectory_planner" type="planner_node" name="trajectory_planner" output="screen">
+        <rosparam file="$(find trajectory_planner)/config/planner_params.yaml"/>
+        <param name="planner/use_odom_as_start" value="true"/>
+        <remap from="~planning/goal" to="/move_base_simple/goal"/>
+        <remap from="~odom" to="/$(arg mav_name)/odom"/>
+    </node>
+
+    <!-- ==================== Trajectory Server ==================== -->
+    <node pkg="trajectory_planner" type="traj_server_node" name="traj_server" output="screen">
+        <param name="hover_height" value="1.0"/>
+        <remap from="~trajectory" to="/trajectory_planner/bspline_traj"/>
+        <remap from="~odom" to="/$(arg mav_name)/odom"/>
+        <!-- Keep original topic name for mux to select -->
+    </node>
+
+    <!-- ==================== RViz (launch separately if crashes) ==================== -->
+    <arg name="rviz" default="false"/>
+    <node pkg="rviz" type="rviz" name="rviz" if="$(arg rviz)"/>
+    
+    <!-- ==================== rqt_mav_manager ==================== -->
+    <node pkg="rqt_mav_manager" type="rqt_mav_manager" name="rqt_mav_manager"/>
+</launch>

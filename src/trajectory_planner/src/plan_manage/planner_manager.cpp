@@ -29,16 +29,22 @@ void PlannerManager::init(ros::NodeHandle& nh) {
     ellipsoid_pub_ = nh.advertise<decomp_ros_msgs::EllipsoidArray>("planning/ellipsoids", 1, true);
     traj_pub_ = nh.advertise<visualization_msgs::Marker>("planning/trajectory", 1, true);
     ctrl_pts_pub_ = nh.advertise<visualization_msgs::Marker>("planning/control_points", 1, true);
+    bspline_traj_pub_ = nh.advertise<trajectory_planner::BsplineTrajectory>("bspline_traj", 1, true);
 
     // Subscriber
     goal_sub_ = nh.subscribe("planning/goal", 1, &PlannerManager::goalCallback, this);
+    odom_sub_ = nh.subscribe("odom", 10, &PlannerManager::odomCallback, this);
+
+    // Parameter: use odom as start
+    nh.param("planner/use_odom_as_start", use_odom_as_start_, true);
 
     // Timer for planning check
     planning_timer_ = nh.createTimer(ros::Duration(0.1), &PlannerManager::planningTimerCallback, this);
 
     ROS_INFO("[PlannerManager] Initialized, waiting for goal...");
-    ROS_INFO("[PlannerManager] Start position: [%.2f, %.2f, %.2f]", 
+    ROS_INFO("[PlannerManager] Default start position: [%.2f, %.2f, %.2f]", 
              start_pos_.x(), start_pos_.y(), start_pos_.z());
+    ROS_INFO("[PlannerManager] Use odom as start: %s", use_odom_as_start_ ? "true" : "false");
 }
 
 void PlannerManager::goalCallback(const geometry_msgs::PoseStamped::ConstPtr& msg) {
@@ -46,7 +52,7 @@ void PlannerManager::goalCallback(const geometry_msgs::PoseStamped::ConstPtr& ms
     goal_pos_.y() = msg->pose.position.y;
     goal_pos_.z() = msg->pose.position.z;
     
-    // If z is 0 (from 2D Nav Goal), set to default height
+    // If z is 0 (from 2D Nav Goal), set to current height
     if (std::abs(goal_pos_.z()) < 0.1) {
         goal_pos_.z() = start_pos_.z();
     }
@@ -56,6 +62,21 @@ void PlannerManager::goalCallback(const geometry_msgs::PoseStamped::ConstPtr& ms
     
     ROS_INFO("[PlannerManager] New goal received: [%.2f, %.2f, %.2f]",
              goal_pos_.x(), goal_pos_.y(), goal_pos_.z());
+    ROS_INFO("[PlannerManager] Start from current position: [%.2f, %.2f, %.2f]",
+             start_pos_.x(), start_pos_.y(), start_pos_.z());
+}
+
+void PlannerManager::odomCallback(const nav_msgs::Odometry::ConstPtr& msg) {
+    if (use_odom_as_start_) {
+        start_pos_.x() = msg->pose.pose.position.x;
+        start_pos_.y() = msg->pose.pose.position.y;
+        start_pos_.z() = msg->pose.pose.position.z;
+        
+        start_vel_.x() = msg->twist.twist.linear.x;
+        start_vel_.y() = msg->twist.twist.linear.y;
+        start_vel_.z() = msg->twist.twist.linear.z;
+    }
+    has_odom_ = true;
 }
 
 void PlannerManager::planningTimerCallback(const ros::TimerEvent& event) {
@@ -126,6 +147,9 @@ bool PlannerManager::runPlanning() {
     
     // Publish trajectory visualization
     publishTrajectoryVisualization();
+    
+    // Publish B-spline trajectory for traj_server
+    publishBsplineTrajectory();
 
     double total_plan_time = (ros::Time::now() - start_time).toSec() * 1000;
     ROS_INFO("[PlannerManager] Total planning time: %.2f ms", total_plan_time);
@@ -249,6 +273,35 @@ void PlannerManager::setGoal(const Eigen::Vector3d& goal) {
     goal_pos_ = goal;
     has_goal_ = true;
     state_ = PlannerState::PLANNING;
+}
+
+void PlannerManager::publishBsplineTrajectory() {
+    if (current_traj_.getTotalTime() <= 0) {
+        ROS_WARN("[PlannerManager] No valid trajectory to publish");
+        return;
+    }
+    
+    trajectory_planner::BsplineTrajectory traj_msg;
+    traj_msg.header.stamp = ros::Time::now();
+    traj_msg.header.frame_id = "world";
+    
+    // Flatten control points
+    const auto& ctrl_pts = current_traj_.getControlPoints();
+    traj_msg.knots.resize(ctrl_pts.size() * 3);
+    for (size_t i = 0; i < ctrl_pts.size(); ++i) {
+        traj_msg.knots[3*i]     = ctrl_pts[i].x();
+        traj_msg.knots[3*i + 1] = ctrl_pts[i].y();
+        traj_msg.knots[3*i + 2] = ctrl_pts[i].z();
+    }
+    
+    traj_msg.dt = current_traj_.getDt();
+    traj_msg.duration = current_traj_.getTotalTime();
+    traj_msg.start_time = ros::Time::now().toSec() + 0.5;  // Start 0.5s later
+    
+    bspline_traj_pub_.publish(traj_msg);
+    
+    ROS_INFO("[PlannerManager] Published B-spline trajectory: %zu control points, dt=%.3f, duration=%.2f",
+             ctrl_pts.size(), traj_msg.dt, traj_msg.duration);
 }
 
 }  // namespace trajectory_planner

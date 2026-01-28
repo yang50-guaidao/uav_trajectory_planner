@@ -16,16 +16,29 @@ find_package(catkin REQUIRED COMPONENTS
   decomp_ros_msgs
   decomp_ros_utils
   decomp_util
+  message_generation
+  kr_mav_msgs
 )
 
 find_package(Eigen3 REQUIRED)
 find_package(PCL REQUIRED)
 find_package(OsqpEigen REQUIRED HINTS ${CMAKE_CURRENT_SOURCE_DIR}/../../install/lib/cmake/OsqpEigen)
 
+# Generate messages
+add_message_files(
+  FILES
+  BsplineTrajectory.msg
+)
+
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
+
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES trajectory_planner
-  CATKIN_DEPENDS roscpp std_msgs geometry_msgs nav_msgs sensor_msgs visualization_msgs pcl_ros decomp_ros_msgs
+  CATKIN_DEPENDS roscpp std_msgs geometry_msgs nav_msgs sensor_msgs visualization_msgs pcl_ros decomp_ros_msgs message_runtime kr_mav_msgs
 )
 
 include_directories(
@@ -92,6 +105,16 @@ target_link_libraries(planner_node
   ${catkin_LIBRARIES}
   planner_manager
 )
+add_dependencies(planner_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+# Trajectory server node
+add_executable(traj_server_node
+  src/traj_server/traj_server_node.cpp
+)
+target_link_libraries(traj_server_node
+  ${catkin_LIBRARIES}
+)
+add_dependencies(traj_server_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 # Install launch and config files
 install(DIRECTORY launch/

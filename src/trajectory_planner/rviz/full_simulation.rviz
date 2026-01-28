@@ -6,9 +6,7 @@ Panels:
       Expanded:
         - /Path1
         - /Trajectory1
-        - /ControlPoints1
-        - /PolyhedronArray1
-        - /Marker4
+        - /Quadrotor1
       Splitter Ratio: 0.5
     Tree Height: 557
   - Class: rviz/Views
@@ -27,7 +25,7 @@ Visualization Manager:
       Class: rviz/Axes
       Enabled: true
       Length: 1
-      Name: Axes
+      Name: WorldAxes
       Radius: 0.10000000149011612
       Reference Frame: world
       Show Trail: false
@@ -41,7 +39,7 @@ Visualization Manager:
       Axis: Z
       Channel Name: intensity
       Class: rviz/PointCloud2
-      Color: 255; 255; 255
+      Color: 200; 200; 200
       Color Transformer: FlatColor
       Decay Time: 0
       Enabled: true
@@ -58,96 +56,44 @@ Visualization Manager:
       Topic: /structure_map/global_cloud
       Unreliable: false
       Use Fixed Frame: true
-      Use rainbow: true
-      Value: true
-    - Class: rviz/Marker
-      Enabled: true
-      Marker Topic: visualization_marker
-      Name: Path
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: true
-    - Class: rviz/Marker
-      Enabled: true
-      Marker Topic: visualization_marker
-      Name: Trajectory
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: true
-    - Class: rviz/Marker
-      Enabled: true
-      Marker Topic: visualization_marker
-      Name: ControlPoints
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: true
-    - Alpha: 1
-      Autocompute Intensity Bounds: true
-      Autocompute Value Bounds:
-        Max Value: 10
-        Min Value: -10
-        Value: true
-      Axis: Z
-      Channel Name: intensity
-      Class: rviz/PointCloud2
-      Color: 255; 255; 255
-      Color Transformer: Intensity
-      Decay Time: 0
-      Enabled: true
-      Invert Rainbow: false
-      Max Color: 255; 255; 255
-      Min Color: 0; 0; 0
-      Name: PointCloud2
-      Position Transformer: XYZ
-      Queue Size: 10
-      Selectable: true
-      Size (Pixels): 3
-      Size (m): 0.009999999776482582
-      Style: Flat Squares
-      Topic: /structure_map/global_cloud
-      Unreliable: false
-      Use Fixed Frame: true
-      Use rainbow: true
-      Value: true
-    - Class: rviz/Marker
-      Enabled: true
-      Marker Topic: /trajectory_planner/planning/control_points
-      Name: Marker
-      Namespaces:
-        {}
-      Queue Size: 100
+      Use rainbow: false
       Value: true
     - Class: rviz/Marker
       Enabled: true
       Marker Topic: /trajectory_planner/planning/path
-      Name: Marker
+      Name: SearchPath
       Namespaces:
-        {}
+        path: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
       Enabled: true
       Marker Topic: /trajectory_planner/planning/trajectory
-      Name: Marker
+      Name: PlannedTrajectory
       Namespaces:
-        {}
+        trajectory: true
       Queue Size: 100
       Value: true
-    - Alpha: 0.30000001192092896
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /trajectory_planner/planning/control_points
+      Name: ControlPoints
+      Namespaces:
+        control_points: true
+      Queue Size: 100
+      Value: true
+    - Alpha: 0.20000000298023224
       BoundColor: 255; 0; 0
       Class: decomp_rviz_plugins/PolyhedronArray
-      Enabled: false
+      Enabled: true
       MeshColor: 0; 170; 255
       Name: Corridors
       Queue Size: 10
-      Scale: 1
-      State: Both
+      Scale: 0.10000000149011612
+      State: Mesh
       Topic: /trajectory_planner/planning/corridors
       Unreliable: false
-      Value: false
+      Value: true
       VsColor: 0; 255; 0
       VsScale: 1
     - Alpha: 0.20000000298023224
@@ -159,40 +105,39 @@ Visualization Manager:
       Topic: /trajectory_planner/planning/ellipsoids
       Unreliable: false
       Value: true
-    - Alpha: 0.20000000298023224
-      BoundColor: 255; 0; 0
-      Class: decomp_rviz_plugins/PolyhedronArray
-      Enabled: true
-      MeshColor: 0; 170; 255
-      Name: PolyhedronArray
-      Queue Size: 10
-      Scale: 0.10000000149011612
-      State: Mesh
-      Topic: /trajectory_planner/planning/corridors
-      Unreliable: false
-      Value: true
-      VsColor: 0; 255; 0
-      VsScale: 1
-    - Alpha: 1
-      Class: rviz_plugin_tutorials/Imu
-      Color: 204; 51; 204
-      Enabled: false
-      History Length: 1
-      Name: Imu
-      Queue Size: 10
-      Topic: /quadrotor/imu
-      Unreliable: false
-      Value: false
     - Class: rviz/Marker
       Enabled: true
       Marker Topic: /quadrotor/mesh_visualization/robot
-      Name: Marker
+      Name: Quadrotor
       Namespaces:
-        /quadrotor/mesh_visualization: true
+        {}
       Queue Size: 100
       Value: true
-    - Angle Tolerance: 0.10000000149011612
-      Class: rviz/Odometry
+    - Alpha: 1
+      Buffer Length: 1
+      Class: rviz/Path
+      Color: 255; 85; 0
+      Enabled: true
+      Head Diameter: 0.30000001192092896
+      Head Length: 0.20000000298023224
+      Length: 0.30000001192092896
+      Line Style: Lines
+      Line Width: 0.029999999329447746
+      Name: ActualPath
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Pose Color: 255; 85; 255
+      Pose Style: None
+      Queue Size: 10
+      Radius: 0.029999999329447746
+      Shaft Diameter: 0.10000000149011612
+      Shaft Length: 0.10000000149011612
+      Topic: /quadrotor/odom_path
+      Unreliable: false
+      Value: true
+    - Class: rviz/Odometry
       Covariance:
         Orientation:
           Alpha: 0.5
@@ -207,22 +152,22 @@ Visualization Manager:
           Color: 204; 51; 204
           Scale: 1
           Value: true
-        Value: true
+        Value: false
       Enabled: true
-      Keep: 100
-      Name: Odometry
+      Keep: 1
+      Name: QuadrotorOdom
       Position Tolerance: 0.10000000149011612
       Queue Size: 10
       Shape:
         Alpha: 1
-        Axes Length: 1
-        Axes Radius: 0.10000000149011612
+        Axes Length: 0.5
+        Axes Radius: 0.05000000074505806
         Color: 255; 25; 0
         Head Length: 0.30000001192092896
         Head Radius: 0.10000000149011612
-        Shaft Length: 1
+        Shaft Length: 0.5
         Shaft Radius: 0.05000000074505806
-        Value: Arrow
+        Value: Axes
       Topic: /quadrotor/odom
       Unreliable: false
       Value: true
@@ -248,7 +193,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 43.3750114440918
+      Distance: 20
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -256,17 +201,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -8.178832054138184
-        Y: -7.988346576690674
-        Z: 4.921599388122559
+        X: -8
+        Y: -8
+        Z: 1
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.019797444343567
+      Pitch: 0.8
       Target Frame: world
-      Yaw: 2.2159430980682373
+      Yaw: 0.8
     Saved: ~
 Window Geometry:
   Displays:
