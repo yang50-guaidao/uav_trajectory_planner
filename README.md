@@ -44,6 +44,8 @@ source devel_isolated/setup.bash
 ```bash
 roslaunch trajectory_planner test_path_search.launch
 ```
+<img width="1886" height="1188" alt="7df468bf253147b639134018ecefa907" src="https://github.com/user-attachments/assets/eefc0699-b448-4141-8a49-3eb854025f1a" />
+
 
 **完整仿真（规划 + SO3控制器）：**
 ```bash
@@ -57,6 +59,8 @@ rviz
 # 添加: Marker (/trajectory_planner/planning/trajectory)
 # 添加: Odometry (/quadrotor/odom)
 ```
+![Video-Project](https://github.com/user-attachments/assets/0385b676-1759-4c1d-8008-330eb1df4a7b)
+
 
 **操作步骤：**
 1. rqt_mav_manager 中点击 Motors ON → Take Off
